@@ -30,3 +30,4 @@
 
 7. Deploy the app using `cdk deploy`
 8. From the console of the step function run tests.
+9. Destroy the app using `cdk destroy`
