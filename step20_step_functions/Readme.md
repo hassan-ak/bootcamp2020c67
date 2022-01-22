@@ -23,3 +23,4 @@
 
 - [Simple Step Function](./step00_simple_step_function)
 - [Pass Wait](./step01_pass_wait)
+- [Choice Part1](./step02_choice_part1)
