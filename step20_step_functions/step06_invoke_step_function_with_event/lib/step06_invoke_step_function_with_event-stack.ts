@@ -2,6 +2,7 @@ import * as cdk from '@aws-cdk/core';
 import * as appsync from '@aws-cdk/aws-appsync';
 import * as events from '@aws-cdk/aws-events';
 import * as ddb from '@aws-cdk/aws-dynamodb';
+import * as lambda from '@aws-cdk/aws-lambda';
 
 export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -50,29 +51,26 @@ export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
         type: ddb.AttributeType.STRING,
       },
     });
+
+    // this function adds data to the dynamoDB table
+    const addData = new lambda.Function(this, 'addData', {
+      runtime: lambda.Runtime.NODEJS_10_X, // execution environment
+      code: lambda.Code.fromAsset('lambda'), // code loaded from "lambda" directory
+      handler: 'addData.handler',
+    });
+    // giving access to the lambda function to do operations on the dynamodb table
+    DynamoTable.grantFullAccess(addData);
+    addData.addEnvironment('DynamoTable', DynamoTable.tableName);
   }
 }
 
 // import * as cdk from '@aws-cdk/core';
-// import * as lambda from '@aws-cdk/aws-lambda';
+//
 //
 // import targets = require('@aws-cdk/aws-events-targets');
 //
 // import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
 // import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
-
-//     // this function adds data to the dynamoDB table
-
-//     const addData = new lambda.Function(this, 'addData', {
-//       runtime: lambda.Runtime.NODEJS_10_X, // execution environment
-//       code: lambda.Code.fromAsset('lambda'), // code loaded from "lambda" directory
-//       handler: 'addData.handler',
-//     });
-
-//     // giving access to the lambda function to do operations on the dynamodb table
-
-//     DynamoTable.grantFullAccess(addData);
-//     addData.addEnvironment('DynamoTable', DynamoTable.tableName);
 
 //     const firstStep = new stepFunctionTasks.LambdaInvoke(
 //       this,
