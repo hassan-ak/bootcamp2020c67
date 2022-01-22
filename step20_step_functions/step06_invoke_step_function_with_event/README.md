@@ -117,3 +117,44 @@ events.EventBus.grantAllPutEvents(httpDs);
       },
     });
     ```
+
+11. Install lambda using `npm i @aws-cdk/lambda` Update "./lib/step06_invoke_step_function_with_event-stack.ts" to create a lambda function and grant access for ddb table
+
+    ```js
+    import * as lambda from '@aws-cdk/aws-lambda';
+    const addData = new lambda.Function(this, 'addData', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'addData.handler',
+    });
+    DynamoTable.grantFullAccess(addData);
+    addData.addEnvironment('DynamoTable', DynamoTable.tableName);
+    ```
+
+12. Create "lambda/addData.ts" to define lmabda handler
+
+    ```js
+    const { DynamoDB } = require('aws-sdk');
+
+    exports.handler = async (event: any) => {
+      const dynamo = new DynamoDB();
+
+      var generateId = Date.now();
+      var idString = generateId.toString();
+
+      const params = {
+        TableName: process.env.DynamoTable,
+        Item: {
+          id: { S: idString },
+          message: { S: event.detail.event },
+        },
+      };
+      try {
+        await dynamo.putItem(params).promise();
+        return { operationSuccessful: true };
+      } catch (err) {
+        console.log('DynamoDB error: ', err);
+        return { operationSuccessful: false };
+      }
+    };
+    ```
