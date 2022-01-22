@@ -1,5 +1,6 @@
 import * as cdk from '@aws-cdk/core';
 import * as appsync from '@aws-cdk/aws-appsync';
+import * as events from '@aws-cdk/aws-events';
 
 export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -17,44 +18,39 @@ export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
       logConfig: { fieldLogLevel: appsync.FieldLogLevel.ALL },
       xrayEnabled: true,
     });
+
+    // HTTP DATASOURCE
+    const httpDs = api.addHttpDataSource(
+      'ds',
+      'https://events.' + this.region + '.amazonaws.com/', // This is the ENDPOINT for eventbridge.
+      {
+        name: 'httpDsWithEventBridge',
+        description: 'From Appsync to Eventbridge',
+        authorizationConfig: {
+          signingRegion: this.region,
+          signingServiceName: 'events',
+        },
+      }
+    );
+    events.EventBus.grantAllPutEvents(httpDs);
+
+    // RESOLVER
+    const putEventResolver = httpDs.createResolver({
+      typeName: 'Mutation',
+      fieldName: 'createEvent',
+      requestMappingTemplate: appsync.MappingTemplate.fromFile('request.vtl'),
+      responseMappingTemplate: appsync.MappingTemplate.fromFile('response.vtl'),
+    });
   }
 }
 
 // import * as cdk from '@aws-cdk/core';
 // import * as lambda from '@aws-cdk/aws-lambda';
-// import * as events from '@aws-cdk/aws-events';
-
+//
 // import targets = require('@aws-cdk/aws-events-targets');
 // import * as ddb from '@aws-cdk/aws-dynamodb';
 // import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
 // import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
-
-// export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
-//   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
-//     super(scope, id, props);
-
-//     // HTTP DATASOURCE
-//     const httpDs = api.addHttpDataSource(
-//       'ds',
-//       'https://events.' + this.region + '.amazonaws.com/', // This is the ENDPOINT for eventbridge.
-//       {
-//         name: 'httpDsWithEventBridge',
-//         description: 'From Appsync to Eventbridge',
-//         authorizationConfig: {
-//           signingRegion: this.region,
-//           signingServiceName: 'events',
-//         },
-//       }
-//     );
-//     events.EventBus.grantPutEvents(httpDs);
-
-//     // RESOLVER
-//     const putEventResolver = httpDs.createResolver({
-//       typeName: 'Mutation',
-//       fieldName: 'createEvent',
-//       requestMappingTemplate: appsync.MappingTemplate.fromFile('request.vtl'),
-//       responseMappingTemplate: appsync.MappingTemplate.fromFile('response.vtl'),
-//     });
 
 //     // created a dynamodb Table
 
