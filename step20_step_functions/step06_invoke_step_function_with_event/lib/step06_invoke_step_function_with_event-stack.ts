@@ -1,6 +1,7 @@
 import * as cdk from '@aws-cdk/core';
 import * as appsync from '@aws-cdk/aws-appsync';
 import * as events from '@aws-cdk/aws-events';
+import * as ddb from '@aws-cdk/aws-dynamodb';
 
 export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -41,6 +42,14 @@ export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
       requestMappingTemplate: appsync.MappingTemplate.fromFile('request.vtl'),
       responseMappingTemplate: appsync.MappingTemplate.fromFile('response.vtl'),
     });
+
+    // created a dynamodb Table
+    const DynamoTable = new ddb.Table(this, 'DynamoTable', {
+      partitionKey: {
+        name: 'id',
+        type: ddb.AttributeType.STRING,
+      },
+    });
   }
 }
 
@@ -48,18 +57,9 @@ export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
 // import * as lambda from '@aws-cdk/aws-lambda';
 //
 // import targets = require('@aws-cdk/aws-events-targets');
-// import * as ddb from '@aws-cdk/aws-dynamodb';
+//
 // import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
 // import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
-
-//     // created a dynamodb Table
-
-//     const DynamoTable = new ddb.Table(this, 'DynamoTable', {
-//       partitionKey: {
-//         name: 'id',
-//         type: ddb.AttributeType.STRING,
-//       },
-//     });
 
 //     // this function adds data to the dynamoDB table
 
