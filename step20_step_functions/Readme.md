@@ -22,3 +22,4 @@
 ## Sections
 
 - [Simple Step Function](./step00_simple_step_function)
+- [Pass Wait](./step01_pass_wait)
