@@ -3,6 +3,9 @@ import * as appsync from '@aws-cdk/aws-appsync';
 import * as events from '@aws-cdk/aws-events';
 import * as ddb from '@aws-cdk/aws-dynamodb';
 import * as lambda from '@aws-cdk/aws-lambda';
+import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
+import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
+import * as targets from '@aws-cdk/aws-events-targets';
 
 export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -61,92 +64,70 @@ export class Step06InvokeStepFunctionWithEventStack extends cdk.Stack {
     // giving access to the lambda function to do operations on the dynamodb table
     DynamoTable.grantFullAccess(addData);
     addData.addEnvironment('DynamoTable', DynamoTable.tableName);
+
+    // Steps
+    const firstStep = new stepFunctionTasks.LambdaInvoke(
+      this,
+      'Invoke addData lambda',
+      {
+        lambdaFunction: addData,
+      }
+    );
+
+    // pass state
+    const pass = new stepFunctions.Pass(this, 'Pass', {
+      result: stepFunctions.Result.fromObject({ triggerTime: 2 }),
+      resultPath: '$.passObject',
+    });
+    // wait state
+    const wait = new stepFunctions.Wait(this, 'Wait For Trigger Time', {
+      time: stepFunctions.WaitTime.secondsPath('$.passObject.triggerTime'),
+    });
+    // Reaching a Succeed state terminates the state machine execution with a succesful status.
+    const success = new stepFunctions.Succeed(this, 'Job Successful');
+    // Reaching a Fail state terminates the state machine execution with a failure status.
+    const jobFailed = new stepFunctions.Fail(this, 'Job Failed', {
+      cause: 'Lambda Job Failed',
+      error: 'could not add data to the dynamoDb',
+    });
+
+    // choice state
+    const choice = new stepFunctions.Choice(this, 'operation successful?');
+    choice.when(
+      stepFunctions.Condition.booleanEquals(
+        '$.Payload.operationSuccessful',
+        true
+      ),
+      success
+    );
+    choice.when(
+      stepFunctions.Condition.booleanEquals(
+        '$.Payload.operationSuccessful',
+        false
+      ),
+      jobFailed
+    );
+
+    // creating chain to define the sequence of execution
+    const chain = stepFunctions.Chain.start(firstStep)
+      .next(pass)
+      .next(wait)
+      .next(choice);
+    // create a state machine
+    const stepFn = new stepFunctions.StateMachine(
+      this,
+      'stateMachineEventDriven',
+      {
+        definition: chain,
+      }
+    );
+
+    // creating rule to invoke step function on event
+    const rule = new events.Rule(this, 'AppSyncStepFnRule', {
+      eventPattern: {
+        source: ['appsync-events'],
+      },
+    });
+    rule.addTarget(new targets.SfnStateMachine(stepFn));
   }
 }
-
-// import * as cdk from '@aws-cdk/core';
-//
-//
-// import targets = require('@aws-cdk/aws-events-targets');
-//
-// import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
-// import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
-
-//     const firstStep = new stepFunctionTasks.LambdaInvoke(
-//       this,
-//       'Invoke addData lambda',
-//       {
-//         lambdaFunction: addData,
-//       }
-//     );
-
-//     // pass state
-
-//     const pass = new stepFunctions.Pass(this, 'Pass', {
-//       result: stepFunctions.Result.fromObject({ triggerTime: 2 }),
-//       resultPath: '$.passObject',
-//     });
-
-//     // wait state
-
-//     const wait = new stepFunctions.Wait(this, 'Wait For Trigger Time', {
-//       time: stepFunctions.WaitTime.secondsPath('$.passObject.triggerTime'),
-//     });
-
-//     // Reaching a Succeed state terminates the state machine execution with a succesful status.
-
-//     const success = new stepFunctions.Succeed(this, 'Job Successful');
-
-//     // Reaching a Fail state terminates the state machine execution with a failure status.
-
-//     const jobFailed = new stepFunctions.Fail(this, 'Job Failed', {
-//       cause: 'Lambda Job Failed',
-//       error: 'could not add data to the dynamoDb',
-//     });
-
-//     // choice state
-
-//     const choice = new stepFunctions.Choice(this, 'operation successful?');
-//     choice.when(
-//       stepFunctions.Condition.booleanEquals(
-//         '$.Payload.operationSuccessful',
-//         true
-//       ),
-//       success
-//     );
-//     choice.when(
-//       stepFunctions.Condition.booleanEquals(
-//         '$.Payload.operationSuccessful',
-//         false
-//       ),
-//       jobFailed
-//     );
-
-//     // creating chain to define the sequence of execution
-
-//     const chain = stepFunctions.Chain.start(firstStep)
-//       .next(pass)
-//       .next(wait)
-//       .next(choice);
-
-//     // create a state machine
-
-//     const stepFn = new stepFunctions.StateMachine(
-//       this,
-//       'stateMachineEventDriven',
-//       {
-//         definition: chain,
-//       }
-//     );
-
-//     // creating rule to invoke step function on event
-
-//     const rule = new events.Rule(this, 'AppSyncStepFnRule', {
-//       eventPattern: {
-//         source: ['appsync-events'],
-//       },
-//     });
-
-//     rule.addTarget(new targets.SfnStateMachine(stepFn));
-//   }
-// }
