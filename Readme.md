@@ -2,8 +2,6 @@
 
 ## AWS Step Functions
 
-### Class Notes
-
 ### Sections
 
 - [Step Functions](./step20_step_functions)
