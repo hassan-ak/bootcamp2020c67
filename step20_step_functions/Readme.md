@@ -27,3 +27,4 @@
 - [Choice Part2](./step02_choice_part2)
 - [Parallel](./step04_parallel)
 - [Map](./step05_map)
+- [Invoke step function with event](./step06_invoke_step_function_with_event)
