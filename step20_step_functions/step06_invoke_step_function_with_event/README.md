@@ -39,22 +39,22 @@
 
 7. Install events using `npm i @aws-cdk/aws-events` Update "./lib/step06_invoke_step_function_with_event-stack.ts" to create a http data source for the api and grant permission to put events on the event bus
 
-```js
-import * as events from '@aws-cdk/aws-events';
-const httpDs = api.addHttpDataSource(
-  'ds',
-  'https://events.' + this.region + '.amazonaws.com/', // This is the ENDPOINT for eventbridge.
-  {
-    name: 'httpDsWithEventBridge',
-    description: 'From Appsync to Eventbridge',
-    authorizationConfig: {
-      signingRegion: this.region,
-      signingServiceName: 'events',
-    },
-  }
-);
-events.EventBus.grantAllPutEvents(httpDs);
-```
+   ```js
+   import * as events from '@aws-cdk/aws-events';
+   const httpDs = api.addHttpDataSource(
+     'ds',
+     'https://events.' + this.region + '.amazonaws.com/', // This is the ENDPOINT for eventbridge.
+     {
+       name: 'httpDsWithEventBridge',
+       description: 'From Appsync to Eventbridge',
+       authorizationConfig: {
+         signingRegion: this.region,
+         signingServiceName: 'events',
+       },
+     }
+   );
+   events.EventBus.grantAllPutEvents(httpDs);
+   ```
 
 8. Update "./lib/step06_invoke_step_function_with_event-stack.ts" to create resolver
 
@@ -158,3 +158,85 @@ events.EventBus.grantAllPutEvents(httpDs);
       }
     };
     ```
+
+13. Install stepFunction tasks using `npm i @aws-cdk/aws-stepfunctions-tasks` Update "./lib/step06_invoke_step_function_with_event-stack.ts" to create step for the lambda function
+
+    ```js
+    import * as stepFunctionTasks from '@aws-cdk/aws-stepfunctions-tasks';
+    const firstStep = new stepFunctionTasks.LambdaInvoke(
+      this,
+      'Invoke addData lambda',
+      {
+        lambdaFunction: addData,
+      }
+    );
+    ```
+
+14. Install stepFunction using `npm i @aws-cdk/aws-stepfunctions` Update "./lib/step06_invoke_step_function_with_event-stack.ts" and define states
+
+    ```js
+    import * as stepFunctions from '@aws-cdk/aws-stepfunctions';
+    const pass = new stepFunctions.Pass(this, 'Pass', {
+      result: stepFunctions.Result.fromObject({ triggerTime: 2 }),
+      resultPath: '$.passObject',
+    });
+    const wait = new stepFunctions.Wait(this, 'Wait For Trigger Time', {
+      time: stepFunctions.WaitTime.secondsPath('$.passObject.triggerTime'),
+    });
+    const success = new stepFunctions.Succeed(this, 'Job Successful');
+    const jobFailed = new stepFunctions.Fail(this, 'Job Failed', {
+      cause: 'Lambda Job Failed',
+      error: 'could not add data to the dynamoDb',
+    });
+    ```
+
+15. Update "./lib/step06_invoke_step_function_with_event-stack.ts" and define choice states
+
+    ```js
+    const choice = new stepFunctions.Choice(this, 'operation successful?');
+    choice.when(
+      stepFunctions.Condition.booleanEquals(
+        '$.Payload.operationSuccessful',
+        true
+      ),
+      success
+    );
+    choice.when(
+      stepFunctions.Condition.booleanEquals(
+        '$.Payload.operationSuccessful',
+        false
+      ),
+      jobFailed
+    );
+    ```
+
+16. Update "./lib/step06_invoke_step_function_with_event-stack.ts" to define chain and state machine
+
+    ```js
+    const chain = stepFunctions.Chain.start(firstStep)
+      .next(pass)
+      .next(wait)
+      .next(choice);
+    const stepFn = new stepFunctions.StateMachine(
+      this,
+      'stateMachineEventDriven',
+      {
+        definition: chain,
+      }
+    );
+    ```
+
+17. Install targets using `npm i @aws-cdk/aws-events-targets` and update "" to define rule for invoking lambda function and add rule to the step function
+
+    ```js
+    import targets = require('@aws-cdk/aws-events-targets');
+    const rule = new events.Rule(this, 'AppSyncStepFnRule', {
+      eventPattern: {
+        source: ['appsync-events'],
+      },
+    });
+    rule.addTarget(new targets.SfnStateMachine(stepFn));
+    ```
+
+18. Deploy the app using `cdk deploy`
+19. Destroy the app using `cdk destroy`
