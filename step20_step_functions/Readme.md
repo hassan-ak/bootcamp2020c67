@@ -18,3 +18,7 @@
 
 - [What is AWS Step Functions?](https://docs.aws.amazon.com/step-functions/latest/dg/welcome.html)
 - [AWS Step Functions Construct Library](https://docs.aws.amazon.com/cdk/api/v1/docs/aws-stepfunctions-readme.html)
+
+## Sections
+
+- [Simple Step Function](./step00_simple_step_function)
