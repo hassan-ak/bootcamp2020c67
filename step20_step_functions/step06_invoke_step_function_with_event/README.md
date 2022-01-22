@@ -105,3 +105,15 @@ events.EventBus.grantAllPutEvents(httpDs);
      $utils.appendError($ctx.result.body, $ctx.result.statusCode)
    #end
    ```
+
+10. Install DDB using `npm i @aws-cdk/aws-events` Update "./lib/step06_invoke_step_function_with_event-stack.ts" to create ddb table
+
+    ```js
+    import * as ddb from '@aws-cdk/aws-dynamodb';
+    const DynamoTable = new ddb.Table(this, 'DynamoTable', {
+      partitionKey: {
+        name: 'id',
+        type: ddb.AttributeType.STRING,
+      },
+    });
+    ```
