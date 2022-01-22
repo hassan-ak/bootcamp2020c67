@@ -24,7 +24,7 @@
 - [Simple Step Function](./step00_simple_step_function)
 - [Pass Wait](./step01_pass_wait)
 - [Choice Part1](./step02_choice_part1)
-- [Choice Part2](./step02_choice_part2)
+- [Choice Part2](./step03_choice_part2)
 - [Parallel](./step04_parallel)
 - [Map](./step05_map)
 - [Invoke step function with event](./step06_invoke_step_function_with_event)
